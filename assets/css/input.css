@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body {
+    @apply bg-slate-50
+}
+
+form {
+    @apply flex flex-col gap-4
+}
+
+input[type="text"], input[type="number"] {
+    @apply bg-slate-100 p-2 rounded-lg shadow-inner 
+}
+
+form input[type="text"]:focus {
+    @apply outline-emerald-600
+}
+
+form h2 {
+    @apply text-emerald-950 text-xl font-bold mb-4
+}
+
+.btn, form input[type="submit"] {
+@apply font-bold py-2 px-4 rounded-lg cursor-pointer
+}
+
+.btn-green, form input[type="submit"] {
+    @apply bg-emerald-500 text-white
+}
+
+.btn-gray {
+    @apply bg-gray-300 text-gray-600
+}

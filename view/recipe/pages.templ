@@ -1,0 +1,49 @@
+package recipe_view
+
+import "github.com/unexpectedtoken/recipes/view/layout"
+import "github.com/unexpectedtoken/recipes/types"
+import "fmt"
+
+templ RecipeOverview(recipes []types.Recipe) {
+	@layout.Base() {
+		<div>
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="text-lime-950 text-lg">Recipes</h2>
+				<a href={ templ.URL("/recipes/create") } class="btn btn-green">Create new recipe</a>
+			</div>
+			@RecipeList(recipes)
+		</div>
+	}
+}
+
+templ RecipeDetail(recipe types.Recipe, renderAddNewButton bool) {
+	@layout.Base() {
+		<div class="flex justify-start items-stretch sm:gap-0 gap-4 sm:justify-between sm:items-center mb-8 flex-col sm:flex-row">
+			<h1 class="text-3xl md:text-6xl font-extrabold text-emerald-950 w-3/4">{ recipe.Title }</h1>
+			@InGroceryListButton(recipe.InGroceryList, recipe.ID)
+		</div>
+		<div class="bg-gray-200 rounded p-4">
+			<h2 class="text-3xl font-bold mb-4">Ingredients</h2>
+			if recipe.PopulatedIngredients != nil {
+				@RecipeIngredientList(recipe.ID, recipe.PopulatedIngredients, renderAddNewButton)
+			} else {
+				<div id="ingredients-empty">
+					<p>This recipe doesn't have any ingredients yet</p>
+					if renderAddNewButton {
+						<button hx-get={ fmt.Sprintf("/recipes/%s/add-ingredient", recipe.ID.Hex()) } hx-target="#ingredients-empty">Add an ingredient</button>
+					}
+				</div>
+			}
+		</div>
+	}
+}
+
+templ RecipeCreateForm() {
+	@layout.Base() {
+		<form method="POST" action="/recipes/create">
+			<h2>Create a recipe</h2>
+			<input required type="text" id="title" name="title"/>
+			<input type="submit" value="Create recipe"/>
+		</form>
+	}
+}

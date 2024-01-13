@@ -1,0 +1,70 @@
+package recipe_view
+
+import (
+	"github.com/unexpectedtoken/recipes/types"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	view_util "github.com/unexpectedtoken/recipes/view/util"
+)
+
+import "path"
+
+templ InGroceryListButton(status bool, recipeID primitive.ObjectID) {
+	if status {
+		<button hx-swap="outerHTML" class="btn btn-gray group" hx-put={ path.Join("/recipes", recipeID.Hex(), "set-status", "false") }><span class="sm:group-hover:hidden hidden sm:block">Already added</span><span class="sm:hidden group-hover:block">Remove from list</span></button>
+	} else {
+		<button hx-swap="outerHTML" hx-put={ path.Join("/recipes", recipeID.Hex(), "set-status", "true") } class="btn btn-green">Add to list</button>
+	}
+}
+
+templ RecipeCard(recipe types.Recipe) {
+	<a href={ templ.URL(fmt.Sprintf("/recipes/%s", recipe.ID.Hex())) }>
+		<div class="p-2 rounded border border-lime-950 border-opacity-20">
+			<h2 class="text-lime-950">{ recipe.Title }</h2>
+		</div>
+	</a>
+}
+
+templ AddIngredientToRecipeForm(recipeID primitive.ObjectID, ingredients []types.Ingredient) {
+	<form hx-post={ string(templ.URL(path.Join("/recipes", recipeID.Hex(), "add-ingredient"))) } method="post" hx-target="#recipe-ingredients" hx-swap="outerHTML" hx-trigger="submit">
+		<select name="ingredient-id" required hx-trigger="none">
+			for _, ingredient := range ingredients {
+				<option value={ ingredient.ID.Hex() }>{ ingredient.Name }</option>
+			}
+		</select>
+		<input class="mt-10" type="submit" value="Add ingredient"/>
+	</form>
+}
+
+templ RecipeList(recipes []types.Recipe) {
+	<div class="flex flex-col gap-4">
+		for _, item := range recipes {
+			@RecipeCard(item)
+		}
+	</div>
+}
+
+templ RecipeIngredientList(recipeID primitive.ObjectID, ingredients*[]types.PopulatedIngredientInRecipe, renderAddNewButton bool) {
+	<div id="recipe-ingredients">
+		<div>
+			<ul class="flex flex-col gap-2 p-4">
+				for _, ingredient := range *ingredients {
+					<li x-data="{editing: false}" class="group flex justify-between" x-on:dblclick="editing=true">
+						<div x-show="!editing">
+							{ ingredient.Name } { view_util.FloatToString[float32](ingredient.Amount) } { ingredient.MeasuringUnit }
+						</div>
+						<div x-show="editing" x-on:click.outside="editing = false">
+							<form hx-put={ fmt.Sprintf("/recipes/%s/ingredients/%s", recipeID.Hex(), ingredient.IngredientID.Hex()) } hx-target="#recipe-ingredients" hx-swap="outerHTML">
+								<input type="number" name="amount" id="amount" value={ view_util.FloatToString[float32](ingredient.Amount) }/>
+							</form>
+						</div>
+						<button x-on:click="editing=true" x-show="!editing" class="group-hover:block hidden">Edit</button>
+					</li>
+				}
+			</ul>
+		</div>
+		if renderAddNewButton {
+			<button hx-get={ string(templ.SafeURL(path.Join("/recipes", recipeID.Hex(), "/add-ingredient"))) } hx-swap="outerHTML" hx-trigger="click">Add new ingredient</button>
+		}
+	</div>
+}
