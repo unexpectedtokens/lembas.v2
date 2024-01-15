@@ -27,8 +27,8 @@ templ IngredientsList(ingredients []types.Ingredient) {
 						@IngredientCard(ingredient)
 					}
 				</div>
-				<div class="flex justify-end">
-					<form hx-post="/ingredients/create" hx-target="#ingredients" hx-on::after-request=" this.reset() " hx-swap="beforeend" class="flex flex-row gap-4 items-center">
+				<div class="md:flex md:justify-end">
+					<form hx-post="/ingredients/create" hx-target="#ingredients" hx-on::after-request=" this.reset() " hx-swap="beforeend" class="flex flex-col md:flex-row gap-4 md:items-center">
 						<input name="name" type="text" class="pb-0" required/>
 						<select name="measuring-unit" required>
 							for _, mUnit := range constants.MeasuringUnits {
