@@ -1,4 +1,4 @@
-package dao
+package repository
 
 import (
 	"context"
@@ -63,4 +63,38 @@ func (d *RecipeDAO) SetInGroceryListStatus(ctx context.Context, ID primitive.Obj
 	_, err := d.col.UpdateOne(ctx, bson.M{"_id": ID}, bson.M{"$set": bson.M{"inGroceryList": status}})
 
 	return err
+}
+
+func (d *RecipeDAO) DeleteRecipe(ctx context.Context, ID primitive.ObjectID) error {
+	res, err := d.col.DeleteOne(ctx, bson.M{"_id": ID})
+
+	if err != nil {
+		return fmt.Errorf("an error occured deleting recipe from repository: %w", err)
+	}
+
+	if res.DeletedCount == 1 {
+		return nil
+	}
+
+	return fmt.Errorf("no recipe deleted: deletedCount 0")
+}
+
+func (d *RecipeDAO) DeleteIngredientFromRecipe(ctx context.Context, ID primitive.ObjectID, ingredientID primitive.ObjectID) error {
+	// Define the filter to match the specific recipe by ID and the ingredient by ID
+	filter := bson.M{
+		"_id": ID,
+	}
+
+	// Define the update to remove the matched ingredient from the array
+	update := bson.M{
+		"$pull": bson.M{"ingredients": bson.M{"ingredient_id": ingredientID}},
+	}
+
+	// Perform the update
+	_, err := d.col.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("no recipe deleted: deletedCount 0")
 }

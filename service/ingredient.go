@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/unexpectedtoken/recipes/dao"
+	dao "github.com/unexpectedtoken/recipes/repository"
 	"github.com/unexpectedtoken/recipes/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

@@ -1,5 +1,5 @@
 package types
 
 type RecipeDocumentModels interface {
-	Recipe | Ingredient
+	Recipe | Ingredient | MealplanEntry
 }

@@ -3,6 +3,7 @@ package recipe_view
 import "github.com/unexpectedtoken/recipes/view/layout"
 import "github.com/unexpectedtoken/recipes/types"
 import "fmt"
+import "path"
 
 templ RecipeOverview(recipes []types.Recipe) {
 	@layout.Base() {
@@ -18,9 +19,12 @@ templ RecipeOverview(recipes []types.Recipe) {
 
 templ RecipeDetail(recipe types.Recipe, renderAddNewButton bool) {
 	@layout.Base() {
-		<div class="flex justify-start items-stretch sm:gap-0 gap-4 sm:justify-between sm:items-center mb-8 flex-col sm:flex-row">
-			<h1 class="text-3xl md:text-6xl font-extrabold text-emerald-950 w-3/4">{ recipe.Title }</h1>
-			@InGroceryListButton(recipe.InGroceryList, recipe.ID)
+		<div class="flex flex-col gap-4 mb-8">
+			<h1 class="text-3xl md:text-6xl font-extrabold text-emerald-950">{ recipe.Title }</h1>
+			<div class="flex gap-4">
+				@InGroceryListButton(recipe.InGroceryList, recipe.ID)
+				<button class="btn btn-gray" hx-delete={ path.Join("/recipes", recipe.ID.Hex()) } hx-confirm="Are you sure about that?">Delete recipe</button>
+			</div>
 		</div>
 		<div class="bg-gray-200 rounded p-4">
 			<h2 class="text-3xl font-bold mb-4">Ingredients</h2>

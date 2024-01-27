@@ -8,6 +8,7 @@ templ ShoppingListOverview(recipes []types.Recipe) {
 	@layout.Base() {
 		<div>
 			<h2 class="mb-4">Recipes in shopping list</h2>
+			<a href="/shopping-list/ingredients">Generate ingredient list</a>
 			@recipe_view.RecipeList(recipes)
 		</div>
 	}

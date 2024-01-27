@@ -58,6 +58,31 @@ func (h *RecipeHandler) HandleUpdateIngredient(w http.ResponseWriter, r *http.Re
 	fmt.Println(recipeID, ingredientID, amount)
 }
 
+func (h *RecipeHandler) HandleRemoveIngredientFromRecipe(w http.ResponseWriter, r *http.Request) {
+	recipeID, err := handler_util.ObjectIDFromR(r, "id")
+
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	ingredientID, err := handler_util.ObjectIDFromR(r, "ingID")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	err = h.recipeService.RemoveIngredientFromRecipe(r.Context(), recipeID, ingredientID)
+
+	if err != nil {
+		handler_util.LogErrorWithMessage(r, "error updating recipe", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, path.Join("/recipes", recipeID.Hex(), "ingredients"), http.StatusSeeOther)
+}
+
 func (h *RecipeHandler) HandleAddToGroceryList(w http.ResponseWriter, r *http.Request) {
 	recipeID, err := handler_util.ObjectIDFromR(r, "id")
 

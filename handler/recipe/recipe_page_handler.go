@@ -1,6 +1,7 @@
 package recipe_handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -57,4 +58,16 @@ func (h RecipeHandler) HandleViewRecipeOverview(w http.ResponseWriter, r *http.R
 	}
 
 	recipe_view.RecipeOverview(recipes).Render(r.Context(), w)
+}
+
+func (h *RecipeHandler) HandleViewShoppingListItems(w http.ResponseWriter, r *http.Request) {
+	shoppingList, err := h.recipeService.ShoppingListIngredients(r.Context())
+
+	if err != nil {
+		panic(err)
+	}
+
+	val, _ := json.Marshal(shoppingList)
+
+	w.Write(val)
 }

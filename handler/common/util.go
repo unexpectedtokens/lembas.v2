@@ -37,4 +37,8 @@ func ObjectIDFromR(r *http.Request, name string) (primitive.ObjectID, error) {
 	return objectId, err
 }
 
+func HandleClientErr() {}
+
+func HandleServerErr() {}
+
 // TODO: Implement generic error handlers

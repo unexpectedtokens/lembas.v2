@@ -8,7 +8,6 @@ import (
 	services "github.com/unexpectedtoken/recipes/service"
 	"github.com/unexpectedtoken/recipes/types"
 	recipe_view "github.com/unexpectedtoken/recipes/view/recipe"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type RecipeHandler struct {
@@ -55,33 +54,6 @@ func (h RecipeHandler) HandleViewRecipeAddIngredientForm(w http.ResponseWriter, 
 	}
 
 	recipe_view.AddIngredientToRecipeForm(recipe.ID, ingredients).Render(r.Context(), w)
-}
-
-func (h RecipeHandler) HandleAddIngredientToRecipe(w http.ResponseWriter, r *http.Request) {
-	recipe, err := h.recipeFromReqOrHandleError(w, r)
-
-	if err != nil {
-		return
-	}
-
-	ingredientID, err := primitive.ObjectIDFromHex(r.FormValue("ingredient-id"))
-	if err != nil {
-		w.WriteHeader(400)
-		return
-	}
-
-	ingredient := types.IngredientInRecipe{
-		IngredientID: ingredientID,
-	}
-
-	err = h.recipeService.AddIngredientToRecipe(r.Context(), *recipe, ingredient)
-
-	if err != nil {
-		handler_util.LogErrorWithMessage(r, "error adding ingredient to recipe", err)
-		return
-	}
-
-	http.Redirect(w, r, path.Join("/recipes", recipe.ID.Hex(), "ingredients"), http.StatusSeeOther)
 }
 
 func (h RecipeHandler) HandleViewRecipeCreateForm(w http.ResponseWriter, r *http.Request) {

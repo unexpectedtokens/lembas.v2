@@ -1,4 +1,4 @@
-package dao
+package repository
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
@@ -6,5 +6,5 @@ import (
 )
 
 func GetIngredientsNotInList(ingredients []primitive.ObjectID) interface{} {
-	return bson.D{{"_id", bson.D{{"$nin", ingredients}}}}
+	return bson.D{{Key: "_id", Value: bson.D{{Key: "$nin", Value: ingredients}}}}
 }

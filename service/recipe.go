@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/unexpectedtoken/recipes/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,6 +16,8 @@ type RecipeDAO interface {
 	UpdateRecipeIngredient(ctx context.Context, recipeID primitive.ObjectID, ingredient types.IngredientInRecipe) error
 	SetInGroceryListStatus(ctx context.Context, ID primitive.ObjectID, status bool) error
 	RecipesInGroceryList(ctx context.Context) ([]types.Recipe, error)
+	DeleteRecipe(ctx context.Context, ID primitive.ObjectID) error
+	DeleteIngredientFromRecipe(ctx context.Context, ID primitive.ObjectID, ingredientID primitive.ObjectID) error
 }
 
 type RecipeService struct {
@@ -52,9 +55,13 @@ func (s *RecipeService) GetRecipeByID(ctx context.Context, id primitive.ObjectID
 	return recipe, nil
 }
 
-func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe types.Recipe, ingredient types.IngredientInRecipe) error {
-	if s.ingredientService.ingredientIDInRecipeIngredients(ingredient.IngredientID, recipe.Ingredients) {
+func (s *RecipeService) AddIngredientToRecipe(ctx context.Context, recipe types.Recipe, ingredientID primitive.ObjectID) error {
+	if s.ingredientService.ingredientIDInRecipeIngredients(ingredientID, recipe.Ingredients) {
 		return fmt.Errorf("error adding ingredient: not unique")
+	}
+
+	ingredient := types.IngredientInRecipe{
+		IngredientID: ingredientID,
 	}
 
 	return s.dao.AddIngredientToRecipe(ctx, recipe.ID, ingredient)
@@ -93,4 +100,60 @@ func (s *RecipeService) RecipesInShoppingList(ctx context.Context) ([]types.Reci
 	}
 
 	return recipes, nil
+}
+
+func (s *RecipeService) RemoveRecipe(ctx context.Context, recipeID primitive.ObjectID) error {
+	return s.dao.DeleteRecipe(ctx, recipeID)
+}
+
+func (s *RecipeService) RemoveIngredientFromRecipe(ctx context.Context, recipeID, ingredientID primitive.ObjectID) error {
+
+	return s.dao.DeleteIngredientFromRecipe(ctx, recipeID, ingredientID)
+}
+
+func (s *RecipeService) AddNewIngredientToRecipe(ctx context.Context, recipeID primitive.ObjectID, ingredient types.Ingredient) error {
+	id, err := s.ingredientService.Create(ctx, ingredient)
+
+	if err != nil {
+		return err
+	}
+	ingredientInRecipe := types.IngredientInRecipe{
+		IngredientID: id,
+	}
+
+	return s.dao.AddIngredientToRecipe(ctx, recipeID, ingredientInRecipe)
+}
+
+func (s *RecipeService) ShoppingListIngredients(ctx context.Context) (*types.ShoppingList, error) {
+
+	recipes, err := s.dao.RecipesInGroceryList(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+	shoppingList := types.ShoppingList{
+		Ingredients: make(map[string]types.PopulatedIngredientInRecipe),
+	}
+	for _, recipe := range recipes {
+
+		populatedIngredients, err := s.ingredientService.PopulateIngredientList(ctx, recipe.Ingredients)
+
+		if err != nil {
+			log.Printf("unable to populate ingredient list for recipe %s\n", recipe.ID.Hex())
+		}
+
+		for _, ing := range *populatedIngredients {
+			ingredID := ing.ID.Hex()
+			ingredientEntry, ok := shoppingList.Ingredients[ingredID]
+
+			if ok {
+				ingredientEntry.Amount += ing.Amount
+				shoppingList.Ingredients[ingredID] = ingredientEntry
+			} else {
+				shoppingList.Ingredients[ingredID] = ing
+			}
+		}
+	}
+
+	return &shoppingList, nil
 }

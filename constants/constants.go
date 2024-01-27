@@ -1,5 +1,5 @@
 package constants
 
 var MeasuringUnits = []string{
-	"Grams", "Milliliters", "Tsp", "Tbsp",
+	"Grams", "Milliliters", "Tsp", "Tbsp", "Cups",
 }
