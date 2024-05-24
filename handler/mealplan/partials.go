@@ -1,48 +1,82 @@
 package mealplan_handler
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
-	handler_util "github.com/unexpectedtoken/recipes/handler/common"
-	"github.com/unexpectedtoken/recipes/logging"
-	"github.com/unexpectedtoken/recipes/types"
+	"github.com/unexpectedtoken/recipes/mealplan"
 	mealplan_view "github.com/unexpectedtoken/recipes/view/mealplan"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (h *MealplanHandler) HandleViewMealplanEntryCreateForm(w http.ResponseWriter, r *http.Request) {
-	datestring := chi.URLParam(r, "datestring")
-	// TODO: manage this logic with AlpineJS, in the frontend
-	mealplan_view.EntryCreateForm(datestring).Render(r.Context(), w)
+func (h *MealplanHandler) HandleViewMealplanEntrySection(w http.ResponseWriter, r *http.Request) {
+	day := chi.URLParam(r, "day")
+	mealType := chi.URLParam(r, "mealtype")
+
+	dayConv, err := time.Parse("02-01-2006", day)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	entries, err := h.mealplanService.MealtypeEntriesForDate(r.Context(), dayConv, mealplan.MealType(mealType))
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		return
+	}
+	if err != nil {
+		return
+	}
+
+	recipes, err := h.recipeService.GetRecipesNotInIDList(r.Context(), entries.IDS())
+
+	if err != nil {
+		h.HandleServerError(w, r, err)
+		return
+	}
+
+	h.RenderHTMX(w, r, mealplan_view.MealplanSection((*mealplan.MealplanRecipeDataEntries)(entries), day, len(recipes) > 0, mealType))
 }
 
-func (h *MealplanHandler) HandleViewMealplanEntry(w http.ResponseWriter, r *http.Request) {
-	id, err := handler_util.ObjectIDFromR(r, "id")
+func (h *MealplanHandler) HandleViewDay(w http.ResponseWriter, r *http.Request) {
+	day := chi.URLParam(r, "day")
+
+	dayConv, err := time.Parse("02-01-2006", day)
 
 	if err != nil {
-		w.WriteHeader(400)
-		logging.LogRequestError(r, err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	entry, err := h.mealplanService.GetByID(r.Context(), id)
+	mealplan_view.Day(dayConv.Format("02-01-2006")).Render(r.Context(), w)
+}
 
+func (h *MealplanHandler) HandleViewAddEntry(w http.ResponseWriter, r *http.Request) {
+	day := chi.URLParam(r, "day")
+	mealType := chi.URLParam(r, "mealtype")
+	dayConv, err := time.Parse("02-01-2006", day)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			w.WriteHeader(http.StatusNotFound)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			logging.LogRequestError(r, err)
-		}
-
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	entryData := mealplan_view.EntryData{
-		Entry: entry,
-		Date:  types.FormatMealplanDate(entry.Date),
+	entries, err := h.mealplanService.MealtypeEntriesForDate(r.Context(), dayConv, mealplan.MealType(mealType))
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
+		return
 	}
 
-	mealplan_view.Entry(&entryData).Render(r.Context(), w)
+	recipes, err := h.recipeService.GetRecipesNotInIDList(r.Context(), entries.IDS())
+
+	if err != nil {
+		return
+	}
+
+	mealplan_view.MealOptions(recipes, day, mealplan.MealType(mealType)).Render(r.Context(), w)
 }

@@ -9,7 +9,7 @@ import (
 
 func TestIngredientIDInRecipeIngredients(t *testing.T) {
 	ingService := IngredientService{}
-	id := primitive.NewObjectID()
+	id := primitive.NewObjectID().Hex()
 
 	ingredientList := []types.IngredientInRecipe{
 		{
@@ -22,12 +22,11 @@ func TestIngredientIDInRecipeIngredients(t *testing.T) {
 		t.Errorf("Should have returned true since id is in ingredients list")
 	}
 
-	id = primitive.NewObjectID()
+	id = primitive.NewObjectID().Hex()
 
 	ingredientList = []types.IngredientInRecipe{
 		{
-			IngredientID: primitive.NewObjectID(),
-			Amount:       20,
+			Amount: 20,
 		},
 	}
 

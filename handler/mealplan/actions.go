@@ -1,35 +1,69 @@
 package mealplan_handler
 
 import (
+	"fmt"
 	"net/http"
-	"path"
+	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/unexpectedtoken/recipes/logging"
-	"github.com/unexpectedtoken/recipes/types"
+	"github.com/unexpectedtoken/recipes/mealplan"
 )
 
 func (h *MealplanHandler) HandleAddEntry(w http.ResponseWriter, r *http.Request) {
-	datestring := chi.URLParam(r, "datestring")
 
-	date, err := types.ParseMealplanDate(datestring)
+	day := chi.URLParam(r, "day")
+
+	dayConv, err := time.Parse("02-01-2006", day)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	mealType := chi.URLParam(r, "mealtype")
 
-	entry := types.MealplanEntry{
-		Date: date,
-	}
+	recipeId := chi.URLParam(r, "recipeID")
 
-	id, err := h.mealplanService.Create(r.Context(), entry)
+	recipe, err := h.recipeService.GetByID(r.Context(), recipeId)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		logging.LogRequestError(r, err)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	http.Redirect(w, r, path.Join("/mealplan/entries", id.Hex()), http.StatusSeeOther)
+	newEntry := mealplan.MealplanEntryV2{
+		RecipeID:    recipeId,
+		RecipeTitle: recipe.Title,
+		Amount:      1,
+		Date:        dayConv,
+		MealType:    mealplan.MealType(mealType),
+	}
+
+	_, err = h.mealplanService.Create(r.Context(), newEntry)
+
+	if err != nil {
+		h.HandleServerError(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/mealplan/%s/%s", day, mealType), http.StatusSeeOther)
+}
+
+func (h *MealplanHandler) HandleRemoveEntry(w http.ResponseWriter, r *http.Request) {
+	entryID := chi.URLParam(r, "entryID")
+
+	entry, err := h.mealplanService.GetByID(r.Context(), entryID)
+
+	if err != nil {
+		h.HandleServerError(w, r, err)
+		return
+	}
+
+	err = h.mealplanService.DeleteByID(r.Context(), entryID)
+
+	if err != nil {
+		h.HandleServerError(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/mealplan/%s/%s", mealplan.FormatDateToIdentifierFormat(entry.Date), entry.MealType), http.StatusSeeOther)
 }

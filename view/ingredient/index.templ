@@ -2,43 +2,42 @@ package ingredient_view
 
 import "github.com/unexpectedtoken/recipes/types"
 import "github.com/unexpectedtoken/recipes/constants"
-import "github.com/unexpectedtoken/recipes/view/layout"
 import "fmt"
 import "github.com/unexpectedtoken/recipes/view/components"
 
 func generateIngredientCardID(ingredient types.Ingredient) string {
-	return fmt.Sprintf("ingredient-%s", ingredient.ID.Hex())
+	return fmt.Sprintf("ingredient-%s", ingredient.ID)
 }
 
 templ IngredientCard(ingredient types.Ingredient) {
 	<div id={ generateIngredientCardID(ingredient) } class="p-2 rounded border border-emerald-950 border-opacity-20 flex flex-row gap-4 items-center">
 		<h5>{ ingredient.Name }</h5>
-		@components.Pill(ingredient.MeasuringUnit)
+		if ingredient.MeasuringUnit != "" {
+			@components.Pill(ingredient.MeasuringUnit)
+		}
 	</div>
 }
 
 templ IngredientsList(ingredients []types.Ingredient) {
-	@layout.Base() {
-		<div class="max-w-screen-md mx-auto">
-			<h2 class="mb-4">Ingredients</h2>
-			<div class="flex flex-col gap-5">
-				<div id="ingredients" class="flex flex-col gap-4">
-					for _, ingredient := range ingredients {
-						@IngredientCard(ingredient)
-					}
-				</div>
-				<div class="md:flex md:justify-end">
-					<form hx-post="/ingredients/create" hx-target="#ingredients" hx-on::after-request=" this.reset() " hx-swap="beforeend" class="flex flex-col md:flex-row gap-4 md:items-center">
-						<input name="name" type="text" class="pb-0" required/>
-						<select name="measuring-unit" required>
-							for _, mUnit := range constants.MeasuringUnits {
-								<option value={ mUnit }>{ mUnit }</option>
-							}
-						</select>
-						<input type="submit" class="btn" value="Create new ingredient"/>
-					</form>
-				</div>
+	<div class="max-w-screen-md mx-auto">
+		<h2 class="mb-4">Ingredients</h2>
+		<div class="flex flex-col gap-5">
+			<div id="ingredients" class="flex flex-col gap-4">
+				for _, ingredient := range ingredients {
+					@IngredientCard(ingredient)
+				}
+			</div>
+			<div class="md:flex md:justify-end">
+				<form hx-post="/ingredients/create" hx-target="#ingredients" hx-on::after-request=" this.reset() " hx-swap="beforeend" class="flex flex-col md:flex-row gap-4 md:items-center">
+					<input name="name" type="text" class="pb-0" required/>
+					<select name="measuring-unit" required>
+						for _, mUnit := range constants.MeasuringUnits {
+							<option value={ mUnit }>{ mUnit }</option>
+						}
+					</select>
+					<input type="submit" class="btn" value="Create new ingredient"/>
+				</form>
 			</div>
 		</div>
-	}
+	</div>
 }

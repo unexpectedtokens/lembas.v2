@@ -1,16 +1,20 @@
 package types
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+type IngredientID string
 
 type Ingredient struct {
-	ID            primitive.ObjectID `bson:"_id,omitempty" schema:"-"`
-	Name          string             `bson:"name" schema:"name"`
-	MeasuringUnit string             `bson:"measuring_unit" schema:"measuring-unit"`
+	ID            string `bson:"_id,omitempty" schema:"-"`
+	Name          string `bson:"name" schema:"name"`
+	MeasuringUnit string `bson:"measuring_unit" schema:"measuring-unit"`
+}
+
+func (i *Ingredient) GetID() string {
+	return i.ID
 }
 
 type IngredientInRecipe struct {
-	IngredientID primitive.ObjectID `bson:"ingredient_id"`
-	Amount       float32            `bson:"amount"`
+	IngredientID string  `bson:"ingredient_id"`
+	Amount       float32 `bson:"amount"`
 }
 
 type PopulatedIngredientInRecipe struct {

@@ -1,6 +1,6 @@
 package layout
 
-templ Base() {
+templ Base(contents templ.Component) {
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -23,7 +23,7 @@ templ Base() {
 				</div>
 			</nav>
 			<main class="max-w-screen-md p-4 mx-auto">
-				{ children... }
+				@contents
 			</main>
 		</body>
 	</html>

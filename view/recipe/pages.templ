@@ -1,53 +1,41 @@
 package recipe_view
 
-import "github.com/unexpectedtoken/recipes/view/layout"
 import "github.com/unexpectedtoken/recipes/types"
-import "fmt"
 import "path"
 
 templ RecipeOverview(recipes []types.Recipe) {
-	@layout.Base() {
-		<div>
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-lime-950 text-lg">Recipes</h2>
-				<a href={ templ.URL("/recipes/create") } class="btn btn-green">Create new recipe</a>
-			</div>
+	<div>
+		<div class="flex justify-between items-center mb-5">
+			<h2 class="title-2">Recipes</h2>
+			<a href={ templ.URL("/recipes/create") } class="btn btn-green">Create new recipe</a>
+		</div>
+		<div class="flex flex-col gap-4">
 			@RecipeList(recipes)
 		</div>
-	}
+	</div>
 }
 
-templ RecipeDetail(recipe types.Recipe, renderAddNewButton bool) {
-	@layout.Base() {
-		<div class="flex flex-col gap-4 mb-8">
-			<h1 class="text-3xl md:text-6xl font-extrabold text-emerald-950">{ recipe.Title }</h1>
-			<div class="flex gap-4">
-				@InGroceryListButton(recipe.InGroceryList, recipe.ID)
-				<button class="btn btn-gray" hx-delete={ path.Join("/recipes", recipe.ID.Hex()) } hx-confirm="Are you sure about that?">Delete recipe</button>
-			</div>
+type RecipeDetailProps struct {
+	Recipe types.Recipe
+}
+
+templ RecipeDetail(props *RecipeDetailProps) {
+	<div class="flex flex-col gap-4 mb-8">
+		<h1 class="text-3xl md:text-6xl font-extrabold text-emerald-950">{ props.Recipe.Title }</h1>
+		<div class="flex gap-4">
+			<button class="btn btn-gray" hx-delete={ path.Join("/recipes", props.Recipe.ID) } hx-confirm="Are you sure about that?">Delete recipe</button>
 		</div>
-		<div class="bg-gray-200 rounded p-4">
-			<h2 class="text-3xl font-bold mb-4">Ingredients</h2>
-			if recipe.PopulatedIngredients != nil {
-				@RecipeIngredientList(recipe.ID, recipe.PopulatedIngredients, renderAddNewButton)
-			} else {
-				<div id="ingredients-empty">
-					<p>This recipe doesn't have any ingredients yet</p>
-					if renderAddNewButton {
-						<button hx-get={ fmt.Sprintf("/recipes/%s/add-ingredient", recipe.ID.Hex()) } hx-target="#ingredients-empty">Add an ingredient</button>
-					}
-				</div>
-			}
-		</div>
-	}
+	</div>
+	<div class="bg-gray-200 rounded p-4">
+		<h2 class="text-3xl font-bold mb-4">Ingredients</h2>
+		<div hx-get={ path.Join("/recipes", props.Recipe.ID, "/ingredients") } hx-swap="outerHTML" hx-trigger="load"></div>
+	</div>
 }
 
 templ RecipeCreateForm() {
-	@layout.Base() {
-		<form method="POST" action="/recipes/create">
-			<h2>Create a recipe</h2>
-			<input required type="text" id="title" name="title"/>
-			<input type="submit" value="Create recipe"/>
-		</form>
-	}
+	<form method="POST" action="/recipes/create">
+		<h2>Create a recipe</h2>
+		<input required type="text" id="title" name="title"/>
+		<input type="submit" value="Create recipe"/>
+	</form>
 }

@@ -1,0 +1,106 @@
+package mealplan_view
+
+import "path"
+import "github.com/unexpectedtoken/recipes/mealplan"
+import "github.com/unexpectedtoken/recipes/types"
+import "github.com/unexpectedtoken/recipes/constants"
+import "strings"
+import "fmt"
+import "strconv"
+
+templ EntryCreateForm (date string) {
+	<div class="flex pt-10 justify-center">
+		<button class="btn btn-green" hx-post={ path.Join("/mealplan/create-entry", date) } hx-target="#entry-root" hx-swap="innerHTML">Create mealplan entry for { date }</button>
+	</div>
+}
+
+templ Day (date string) {
+	<div class="pt-8">
+		<h2 class="text-3xl font-semibold">Entries for { date }</h2>
+		for _, mealType := range constants.MealTypes {
+			<div hx-swap="innerHTML" hx-trigger="load" hx-get={ fmt.Sprintf("/mealplan/%s/%s", date, mealType) } id={ fmt.Sprintf("section-%s", mealType) }></div>
+		}
+	</div>
+}
+
+type MealplanOverviewProps struct {
+	Period mealplan.Period
+}
+
+templ MealplanOverviewPage(props *MealplanOverviewProps) {
+	<div>
+		<a class="btn btn-gray mb-5" href="/mealplan/shopping-list/datepicker">Generate shopping list</a>
+		<div class="flex justify-evenly">
+			for _, day := range props.Period {
+				<a
+					hx-target="#entry-root"
+					hx-swap="innerHTML"
+					hx-get={ path.Join("/mealplan/", day.Format("02-01-2006")) }
+					class="flex flex-col items-center justify-start relative p-2"
+				>
+					// Add indicators of existing entries for date
+					// 	<span class="w-3 h-3 rounded-full bg-emerald-500 absolute bottom-full left-1/2 -translate-x-1/2"></span>
+					<span>{ day.Format("2 Jan") }</span>
+					<span>{ day.Weekday().String() }</span>
+				</a>
+			}
+		</div>
+		<div id="entry-root"></div>
+	</div>
+}
+
+templ EntryCard(entry mealplan.MealplanEntryV2) {
+	<div class="p-2 rounded border border-lime-950 border-opacity-20">
+		<div class="flex justify-between">
+			<h2 class="text-lime-950">{ entry.RecipeTitle }</h2>
+			<span>x{ strconv.Itoa(entry.Amount)  }</span>
+		</div>
+		<div class="flex gap-2">
+			<a class="text-emerald-500" href={ templ.URL(fmt.Sprintf("/recipes/%s", entry.RecipeID)) }>view</a>
+			<a
+				class="cursor-pointer text-emerald-500"
+				hx-delete={ fmt.Sprintf("/mealplan/entries/%s", entry.ID) }
+				hx-target={ fmt.Sprintf("#section-%s", entry.MealType) }
+			>remove</a>
+		</div>
+	</div>
+}
+
+templ MealplanSection (sectionData *mealplan.MealplanRecipeDataEntries, dateIdentifier string, renderAddNewButton bool, section string) {
+	<div>
+		<h3 class="my-6 text-2xl font-semibold">{ strings.ToUpper(section[:1]) + section[1:] }</h3>
+		<div class="flex flex-col gap-4">
+			if sectionData != nil &&  len(*sectionData) > 0 {
+				for _, recipe := range *sectionData {
+					@EntryCard(recipe)
+				}
+			} else {
+				<p>There are no recipes added for { section }</p>
+			}
+			if renderAddNewButton {
+				<button hx-get={ fmt.Sprintf("/mealplan/%s/%s/new", dateIdentifier, section) } hx-swap="outerHTML">Add recipe</button>
+			}
+		</div>
+	</div>
+}
+
+templ MealOptions (recipes []types.Recipe, entryDate string, mealType mealplan.MealType) {
+	<div id={ fmt.Sprintf("%s-options-container", mealType) } x-data="{show: true}" :class="show ? 'border p-5' : ''">
+		<div class="flex justify-end flex-row pb-5">
+			<button class="block" @click="show = false" x-show="show">X</button>
+		</div>
+		if len(recipes) > 0 {
+			<div x-show="show" class="flex flex-col items-stretch gap-5">
+				for _, recipe := range recipes {
+					<button
+						class="p-2 rounded border border-lime-950 border-opacity-20"
+						hx-post={ fmt.Sprintf("/mealplan/%s/%s/new/%s", entryDate, mealType, recipe.ID) }
+						hx-target={ fmt.Sprintf("#section-%s", mealType) }
+						hx-swap="innerHTML"
+					>{ recipe.Title }</button>
+				}
+			</div>
+			<button @click="show = true" x-show="!show">Add recipe</button>
+		}
+	</div>
+}

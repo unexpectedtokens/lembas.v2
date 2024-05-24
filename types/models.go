@@ -1,5 +1,7 @@
 package types
 
+import "github.com/unexpectedtoken/recipes/mealplan"
+
 type RecipeDocumentModels interface {
-	Recipe | Ingredient | MealplanEntry
+	Recipe | Ingredient | mealplan.MealplanEntry | mealplan.MealplanEntryV2
 }

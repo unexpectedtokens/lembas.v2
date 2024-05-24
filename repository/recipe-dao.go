@@ -6,7 +6,6 @@ import (
 
 	"github.com/unexpectedtoken/recipes/types"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -25,20 +24,28 @@ func NewRecipeDAO(db *mongo.Database) *RecipeDAO {
 	}
 }
 
-func (d *RecipeDAO) RecipesInGroceryList(ctx context.Context) ([]types.Recipe, error) {
-	return d.GetList(ctx, bson.M{"inGroceryList": true})
-}
+func (d *RecipeDAO) AddIngredientToRecipe(ctx context.Context, ID string, ingredient types.IngredientInRecipe) error {
+	recipeID, err := parseId(ID)
 
-func (d *RecipeDAO) AddIngredientToRecipe(ctx context.Context, ID primitive.ObjectID, ingredient types.IngredientInRecipe) error {
-	_, err := d.col.UpdateOne(ctx, bson.M{"_id": ID}, bson.M{"$push": bson.M{"ingredients": ingredient}})
+	if err != nil {
+		return err
+	}
+
+	_, err = d.col.UpdateOne(ctx, bson.M{"_id": recipeID}, bson.M{"$push": bson.M{"ingredients": ingredient}})
 
 	return err
 }
 
-func (d *RecipeDAO) UpdateRecipeIngredient(ctx context.Context, recipeID primitive.ObjectID, ingredient types.IngredientInRecipe) error {
+func (d *RecipeDAO) UpdateRecipeIngredient(ctx context.Context, recipeID string, ingredient types.IngredientInRecipe) error {
+	recipeObjID, err := parseId(recipeID)
+
+	if err != nil {
+		return err
+	}
+
 	// Define the filter to match the specific recipe by ID and the ingredient by ID
 	filter := bson.M{
-		"_id":                       recipeID,
+		"_id":                       recipeObjID,
 		"ingredients.ingredient_id": ingredient.IngredientID,
 	}
 
@@ -59,13 +66,7 @@ func (d *RecipeDAO) UpdateRecipeIngredient(ctx context.Context, recipeID primiti
 	return nil
 }
 
-func (d *RecipeDAO) SetInGroceryListStatus(ctx context.Context, ID primitive.ObjectID, status bool) error {
-	_, err := d.col.UpdateOne(ctx, bson.M{"_id": ID}, bson.M{"$set": bson.M{"inGroceryList": status}})
-
-	return err
-}
-
-func (d *RecipeDAO) DeleteRecipe(ctx context.Context, ID primitive.ObjectID) error {
+func (d *RecipeDAO) DeleteRecipe(ctx context.Context, ID string) error {
 	res, err := d.col.DeleteOne(ctx, bson.M{"_id": ID})
 
 	if err != nil {
@@ -79,7 +80,7 @@ func (d *RecipeDAO) DeleteRecipe(ctx context.Context, ID primitive.ObjectID) err
 	return fmt.Errorf("no recipe deleted: deletedCount 0")
 }
 
-func (d *RecipeDAO) DeleteIngredientFromRecipe(ctx context.Context, ID primitive.ObjectID, ingredientID primitive.ObjectID) error {
+func (d *RecipeDAO) DeleteIngredientFromRecipe(ctx context.Context, ID string, ingredientID string) error {
 	// Define the filter to match the specific recipe by ID and the ingredient by ID
 	filter := bson.M{
 		"_id": ID,

@@ -1,0 +1,29 @@
+package mealplan_view
+
+import "github.com/unexpectedtoken/recipes/shopping"
+import "github.com/unexpectedtoken/recipes/view/util"
+
+templ ShoppingListPage(list *shopping.ShoppingList) {
+	<div>
+		<h2 class="text-2xl font-bold mb-5">Shopping list for { list.DateRange.FromDate.Format("Jan 2") } through { list.DateRange.ToDate.Format("Jan 2") }</h2>
+		<div id="recipe-ingredients" class="flex flex-col items-stretch gap-4">
+			<div>
+				if len(list.Ingredients) > 0 {
+					<ul class="flex flex-col gap-2">
+						for _, ingredient := range list.Ingredients {
+							<li class="p-5 border rounded">
+								<div x-show="!editing">
+									<span class="text-lg">{ view_util.FloatToString[float32](ingredient.Amount) } { ingredient.MeasuringUnit } of { ingredient.Ingredient.Name }</span>
+								</div>
+							</li>
+						}
+					</ul>
+				} else {
+					<div id="ingredients-empty">
+						<p>No entries found for this period</p>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}

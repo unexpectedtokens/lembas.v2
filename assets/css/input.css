@@ -2,35 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-
 body {
-    @apply bg-slate-50
+  @apply bg-slate-50;
 }
 
 form {
-    @apply flex flex-col gap-4
+  @apply flex flex-col gap-4;
 }
 
-input[type="text"], input[type="number"], select {
-    @apply bg-slate-100 p-2 rounded-lg shadow-inner 
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+select {
+  @apply bg-slate-100 p-2 rounded-lg shadow-inner;
 }
 
-form input[type="text"]:focus {
-    @apply outline-emerald-600
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="date"]:focus,
+input[type="number"]:focus {
+  @apply outline-emerald-600;
 }
 
 form h2 {
-    @apply text-emerald-950 text-xl font-bold mb-4
+  @apply text-emerald-950 text-xl font-bold mb-4;
 }
 
-.btn, form input[type="submit"] {
-@apply font-bold py-2 px-4 rounded-lg cursor-pointer
+.btn,
+form input[type="submit"] {
+  @apply font-bold py-2 px-4 rounded-lg cursor-pointer flex flex-row justify-center;
 }
 
-.btn-green, form input[type="submit"] {
-    @apply bg-emerald-500 text-white
+.btn-green,
+form input[type="submit"] {
+  @apply bg-emerald-500 text-white;
 }
 
 .btn-gray {
-    @apply bg-gray-300 text-gray-600
+  @apply bg-gray-300 text-gray-600;
+}
+
+.title-2 {
+  @apply text-4xl font-bold mb-4;
 }

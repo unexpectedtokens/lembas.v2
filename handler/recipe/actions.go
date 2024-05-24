@@ -4,24 +4,26 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/go-chi/chi/v5"
 	handler_util "github.com/unexpectedtoken/recipes/handler/common"
 	"github.com/unexpectedtoken/recipes/types"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func (h *RecipeHandler) HandleDeleteRecipe(w http.ResponseWriter, r *http.Request) {
 
-	id, err := handler_util.ObjectIDFromR(r, "id")
+	id := chi.URLParam(r, "id")
+
+	err := h.recipeService.RemoveRecipe(r.Context(), id)
 
 	if err != nil {
-		handler_util.LogErrorWithMessage(r, "error getting id from r", err)
+		h.HandleServerError(w, r, err)
 		return
 	}
 
-	err = h.recipeService.RemoveRecipe(r.Context(), id)
+	err = h.mealplanService.RemoveAllEntriesForRecipe(r.Context(), id)
 
 	if err != nil {
-		handler_util.LogErrorWithMessage(r, "error deleting recipe", err)
+		h.HandleServerError(w, r, err)
 		return
 	}
 
@@ -30,17 +32,11 @@ func (h *RecipeHandler) HandleDeleteRecipe(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *RecipeHandler) HandleAddNewIngredientToRecipe(w http.ResponseWriter, r *http.Request) {
-	recipeID, err := handler_util.ObjectIDFromR(r, "id")
+	recipeID := chi.URLParam(r, "id")
 
+	err := r.ParseForm()
 	if err != nil {
-		w.WriteHeader(400)
-		handler_util.HandleClientErr()
-		return
-	}
-
-	err = r.ParseForm()
-	if err != nil {
-		handler_util.HandleClientErr()
+		h.HandleClientError(w, r, err)
 		return
 	}
 
@@ -52,11 +48,11 @@ func (h *RecipeHandler) HandleAddNewIngredientToRecipe(w http.ResponseWriter, r 
 	err = h.recipeService.AddNewIngredientToRecipe(r.Context(), recipeID, ingredient)
 
 	if err != nil {
-		handler_util.HandleServerErr()
+		h.HandleServerError(w, r, err)
 		return
 	}
 
-	http.Redirect(w, r, path.Join("/recipes", recipeID.Hex(), "ingredients"), http.StatusSeeOther)
+	http.Redirect(w, r, path.Join("/recipes", recipeID, "ingredients"), http.StatusSeeOther)
 }
 
 func (h RecipeHandler) HandleAddIngredientToRecipe(w http.ResponseWriter, r *http.Request) {
@@ -66,11 +62,7 @@ func (h RecipeHandler) HandleAddIngredientToRecipe(w http.ResponseWriter, r *htt
 		return
 	}
 
-	ingredientID, err := primitive.ObjectIDFromHex(r.FormValue("ingredient-id"))
-	if err != nil {
-		handler_util.HandleClientErr()
-		return
-	}
+	ingredientID := r.FormValue("ingredient-id")
 
 	err = h.recipeService.AddIngredientToRecipe(r.Context(), *recipe, ingredientID)
 
@@ -79,5 +71,5 @@ func (h RecipeHandler) HandleAddIngredientToRecipe(w http.ResponseWriter, r *htt
 		return
 	}
 
-	http.Redirect(w, r, path.Join("/recipes", recipe.ID.Hex(), "ingredients"), http.StatusSeeOther)
+	http.Redirect(w, r, path.Join("/recipes", recipe.ID, "ingredients"), http.StatusSeeOther)
 }

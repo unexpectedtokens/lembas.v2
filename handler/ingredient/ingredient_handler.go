@@ -3,6 +3,7 @@ package ingredient_handler
 import (
 	"net/http"
 
+	"github.com/unexpectedtoken/recipes/handler/base"
 	handler_util "github.com/unexpectedtoken/recipes/handler/common"
 	services "github.com/unexpectedtoken/recipes/service"
 	"github.com/unexpectedtoken/recipes/types"
@@ -12,11 +13,13 @@ import (
 type IngredientHandler struct {
 	// TODO: Change to recipe service interface
 	ingredientService *services.IngredientService
+	*base.BaseHandler
 }
 
-func NewIngredientHandler(serv *services.IngredientService) *IngredientHandler {
+func NewIngredientHandler(serv *services.IngredientService, baseHandler *base.BaseHandler) *IngredientHandler {
 	return &IngredientHandler{
 		ingredientService: serv,
+		BaseHandler:       baseHandler,
 	}
 }
 
@@ -30,7 +33,7 @@ func (h *IngredientHandler) HandleViewIngredients(w http.ResponseWriter, r *http
 		return
 	}
 
-	ingredient_view.IngredientsList(ingredients).Render(r.Context(), w)
+	h.RenderHTMXWithLayout(w, r, ingredient_view.IngredientsList(ingredients))
 }
 
 func (h *IngredientHandler) HandlePostIngredient(w http.ResponseWriter, r *http.Request) {
@@ -59,5 +62,5 @@ func (h *IngredientHandler) HandlePostIngredient(w http.ResponseWriter, r *http.
 
 	ingredient.ID = id
 
-	ingredient_view.IngredientCard(ingredient).Render(r.Context(), w)
+	h.RenderHTMX(w, r, ingredient_view.IngredientCard(ingredient))
 }

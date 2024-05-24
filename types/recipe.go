@@ -1,13 +1,13 @@
 package types
 
-import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
-
 type Recipe struct {
-	ID                   primitive.ObjectID             `schema:"-" bson:"_id,omitempty"`
+	ID                   string                         `schema:"-" bson:"_id,omitempty"`
 	Title                string                         `schema:"title,required" bson:"title"`
 	Ingredients          []IngredientInRecipe           `schema:"-" bson:"ingredients"`
-	PopulatedIngredients *[]PopulatedIngredientInRecipe `bson:"skip" schema:"skip"`
+	PopulatedIngredients *[]PopulatedIngredientInRecipe `bson:"-" schema:"-"`
 	InGroceryList        bool                           `bson:"inGroceryList" schema:"-"`
+}
+
+func (r *Recipe) GetID() string {
+	return r.ID
 }

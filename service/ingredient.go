@@ -3,10 +3,11 @@ package services
 import (
 	"context"
 
-	dao "github.com/unexpectedtoken/recipes/repository"
 	"github.com/unexpectedtoken/recipes/types"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+type IngredientDAO interface {
+}
 
 type IngredientService struct {
 	dao DAO[types.Ingredient]
@@ -22,8 +23,8 @@ func NewIngredientService(dao DAO[types.Ingredient]) *IngredientService {
 	}
 }
 
-func (s *IngredientService) idsFromImplementedIngredients(implementedIngredients []types.IngredientInRecipe) []primitive.ObjectID {
-	allIds := []primitive.ObjectID{}
+func (s *IngredientService) idsFromImplementedIngredients(implementedIngredients []types.IngredientInRecipe) []string {
+	allIds := []string{}
 
 	for _, ingr := range implementedIngredients {
 		allIds = append(allIds, ingr.IngredientID)
@@ -32,7 +33,7 @@ func (s *IngredientService) idsFromImplementedIngredients(implementedIngredients
 	return allIds
 }
 
-func (s *IngredientService) ingredientIDInRecipeIngredients(ID primitive.ObjectID, ingredients []types.IngredientInRecipe) bool {
+func (s *IngredientService) ingredientIDInRecipeIngredients(ID string, ingredients []types.IngredientInRecipe) bool {
 	inList := false
 
 	for _, ingredient := range ingredients {
@@ -50,7 +51,7 @@ func (s *IngredientService) matchIngredientsToImplementation(ingredients []types
 		popIngredient := types.PopulatedIngredientInRecipe{}
 		found := false
 		for _, ingredient := range ingredients {
-			if impIngredient.IngredientID.Hex() == ingredient.ID.Hex() {
+			if impIngredient.IngredientID == ingredient.ID {
 				popIngredient.Ingredient = ingredient
 				popIngredient.IngredientInRecipe = impIngredient
 				found = true
@@ -65,9 +66,8 @@ func (s *IngredientService) matchIngredientsToImplementation(ingredients []types
 }
 
 func (s *IngredientService) PopulateIngredientList(ctx context.Context, implementedIngredients []types.IngredientInRecipe) (*[]types.PopulatedIngredientInRecipe, error) {
-
 	idsInRecipe := s.idsFromImplementedIngredients(implementedIngredients)
-	ingredients, err := s.dao.GetList(ctx, dao.IngredientsInListQuery(idsInRecipe))
+	ingredients, err := s.dao.GetListInclIDS(ctx, &idsInRecipe)
 
 	if err != nil {
 		return nil, err
@@ -77,11 +77,11 @@ func (s *IngredientService) PopulateIngredientList(ctx context.Context, implemen
 }
 
 func (s *IngredientService) GetIngredientsNotInList(ctx context.Context, ingredients []types.IngredientInRecipe) ([]types.Ingredient, error) {
-	ids := []primitive.ObjectID{}
+	ids := []string{}
 
 	for _, ingr := range ingredients {
 		ids = append(ids, ingr.IngredientID)
 	}
 
-	return s.dao.GetList(ctx, dao.GetIngredientsNotInList(ids))
+	return s.dao.GetListExclIDS(ctx, &ids)
 }

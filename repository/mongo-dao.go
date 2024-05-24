@@ -18,6 +18,38 @@ func NewMongoDAO[T types.RecipeDocumentModels](db *mongo.Database, collection st
 	return &MongoDAO[T]{col: db.Collection(collection)}
 }
 
+func parseId(id string) (primitive.ObjectID, error) {
+	objId, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return objId, ErrInvalidId
+	}
+
+	return objId, nil
+}
+
+func parseIDList(ids *[]string) (*[]primitive.ObjectID, error) {
+	objIds := []primitive.ObjectID{}
+
+	var parseError error
+	for _, id := range *ids {
+		objID, err := primitive.ObjectIDFromHex(id)
+
+		if err != nil {
+			parseError = err
+			break
+		}
+
+		objIds = append(objIds, objID)
+	}
+
+	if parseError != nil {
+		return nil, parseError
+	}
+
+	return &objIds, nil
+}
+
 func (d *MongoDAO[T]) GetList(ctx context.Context, query interface{}) ([]T, error) {
 	slic := []T{}
 	cursor, err := d.col.Find(ctx, query)
@@ -39,7 +71,35 @@ func (d *MongoDAO[T]) GetList(ctx context.Context, query interface{}) ([]T, erro
 	return slic, nil
 }
 
-func (d *MongoDAO[T]) CreateDocument(ctx context.Context, document T) (insertedID primitive.ObjectID, err error) {
+func (d *MongoDAO[T]) GetListExclIDS(ctx context.Context, list *[]string) ([]T, error) {
+	objIds, err := parseIDList(list)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return d.GetList(ctx, bson.M{
+		"_id": bson.M{
+			"$nin": objIds,
+		},
+	})
+}
+
+func (d *MongoDAO[T]) GetListInclIDS(ctx context.Context, list *[]string) ([]T, error) {
+	objIds, err := parseIDList(list)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return d.GetList(ctx, bson.M{
+		"_id": bson.M{
+			"$in": objIds,
+		},
+	})
+}
+
+func (d *MongoDAO[T]) CreateDocument(ctx context.Context, document T) (insertedID string, err error) {
 	result, err := d.col.InsertOne(ctx, document)
 
 	if err != nil {
@@ -49,19 +109,37 @@ func (d *MongoDAO[T]) CreateDocument(ctx context.Context, document T) (insertedI
 	id, ok := result.InsertedID.(primitive.ObjectID)
 
 	if ok {
-		return id, nil
+		return id.Hex(), nil
 	}
 
-	return insertedID, nil
+	return "", nil
 }
 
-func (d *MongoDAO[T]) GetSingle(ctx context.Context, id primitive.ObjectID) (T, error) {
+func (d *MongoDAO[T]) GetByID(ctx context.Context, id string) (T, error) {
 	var doc T
-	err := d.col.FindOne(ctx, bson.M{"_id": id}).Decode(&doc)
+
+	objID, err := parseId(id)
+
+	if err != nil {
+		return doc, err
+	}
+
+	err = d.col.FindOne(ctx, bson.M{"_id": objID}).Decode(&doc)
 
 	if err != nil {
 		return doc, err
 	}
 
 	return doc, nil
+}
+
+func (d *MongoDAO[T]) DeleteByID(ctx context.Context, id string) error {
+	objID, err := parseId(id)
+
+	if err != nil {
+		return err
+	}
+	_, err = d.col.DeleteOne(ctx, bson.M{"_id": objID})
+
+	return err
 }

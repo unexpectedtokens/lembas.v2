@@ -3,40 +3,45 @@ package recipe_view
 import (
 	"github.com/unexpectedtoken/recipes/types"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	view_util "github.com/unexpectedtoken/recipes/view/util"
 )
 
 import "github.com/unexpectedtoken/recipes/constants"
 import "path"
 
-templ InGroceryListButton(status bool, recipeID primitive.ObjectID) {
-	if status {
-		<button hx-swap="outerHTML" class="btn btn-gray group" hx-put={ path.Join("/recipes", recipeID.Hex(), "set-status", "false") }><span class="sm:group-hover:hidden hidden sm:block">Already added to list</span><span class="sm:hidden group-hover:block">Remove from list</span></button>
-	} else {
-		<button hx-swap="outerHTML" hx-put={ path.Join("/recipes", recipeID.Hex(), "set-status", "true") } class="btn btn-green">Add to list</button>
-	}
-}
-
-templ RecipeCard(recipe types.Recipe) {
-	<a href={ templ.URL(fmt.Sprintf("/recipes/%s", recipe.ID.Hex())) }>
+templ RecipeCard(title string, recipeID string) {
+	<a href={ templ.URL(fmt.Sprintf("/recipes/%s", recipeID)) }>
 		<div class="p-2 rounded border border-lime-950 border-opacity-20">
-			<h2 class="text-lime-950">{ recipe.Title }</h2>
+			<h2 class="text-lime-950">{ title }</h2>
 		</div>
 	</a>
 }
 
-templ AddIngredientToRecipeForm(recipeID primitive.ObjectID, ingredients []types.Ingredient) {
-	<div x-data="{newIng: false}" class="flex flex-col items-stretch gap-4">
-		<form x-show="!newIng" hx-post={ string(templ.URL(path.Join("/recipes", recipeID.Hex(), "add-ingredient"))) } method="post" hx-target="#recipe-ingredients" hx-swap="outerHTML" hx-trigger="submit">
-			<select name="ingredient-id" required hx-trigger="none">
-				for _, ingredient := range ingredients {
-					<option value={ ingredient.ID.Hex() }>{ ingredient.Name }</option>
-				}
-			</select>
-			<input class="mt-4" type="submit" value="Add existing ingredient"/>
-		</form>
-		<form x-show="newIng" hx-post={ string(templ.URL(path.Join("/recipes", recipeID.Hex(), "add-new-ingredient"))) } method="post" hx-target="#recipe-ingredients" hx-swap="outerHTML" hx-trigger="submit">
+templ AddIngredientToRecipeForm(recipeID string, ingredients []types.Ingredient) {
+	if len(ingredients) > 0 {
+		<div x-data="{newIng: false}" class="flex flex-col items-stretch gap-4">
+			<form x-show="!newIng" hx-post={ string(templ.URL(path.Join("/recipes", recipeID, "add-ingredient"))) } method="post" hx-target="#recipe-ingredients" hx-swap="outerHTML" hx-trigger="submit">
+				<select name="ingredient-id" required hx-trigger="none">
+					for _, ingredient := range ingredients {
+						<option value={ ingredient.ID }>{ ingredient.Name }</option>
+					}
+				</select>
+				<input class="mt-4" type="submit" value="Add existing ingredient"/>
+			</form>
+			<form x-show="newIng" hx-post={ string(templ.URL(path.Join("/recipes", recipeID, "add-new-ingredient"))) } method="post" hx-target="#recipe-ingredients" hx-swap="outerHTML" hx-trigger="submit">
+				<input type="text" name="ingredient-name" required/>
+				<select name="measuring-unit" required>
+					for _, mUnit := range constants.MeasuringUnits {
+						<option value={ mUnit }>{ mUnit }</option>
+					}
+				</select>
+				<input class="mt-4" type="submit" value="Add new ingredient"/>
+			</form>
+			<button x-show="!newIng" class="btn btn-gray" x-on:click="newIng=true">Add new ingredient instead</button>
+			<button x-show="newIng" class="btn btn-gray" x-on:click="newIng=false">Add existing ingredient instead</button>
+		</div>
+	} else {
+		<form hx-post={ string(templ.URL(path.Join("/recipes", recipeID, "add-new-ingredient"))) } method="post" hx-target="#recipe-ingredients" hx-swap="outerHTML" hx-trigger="submit">
 			<input type="text" name="ingredient-name" required/>
 			<select name="measuring-unit" required>
 				for _, mUnit := range constants.MeasuringUnits {
@@ -45,48 +50,48 @@ templ AddIngredientToRecipeForm(recipeID primitive.ObjectID, ingredients []types
 			</select>
 			<input class="mt-4" type="submit" value="Add new ingredient"/>
 		</form>
-		<button x-show="!newIng" class="btn btn-gray" x-on:click="newIng=true">Add new ingredient instead</button>
-		<button x-show="newIng" class="btn btn-gray" x-on:click="newIng=false">Add existing ingredient instead</button>
-	</div>
+	}
 }
 
 templ RecipeList(recipes []types.Recipe) {
-	<div class="flex flex-col gap-4">
-		for _, item := range recipes {
-			@RecipeCard(item)
-		}
-	</div>
+	for _, item := range recipes {
+		@RecipeCard(item.Title, item.ID)
+	}
 }
 
-templ RecipeIngredientList(recipeID primitive.ObjectID, ingredients*[]types.PopulatedIngredientInRecipe, renderAddNewButton bool) {
+templ RecipeIngredientList(recipeID string, ingredients*[]types.PopulatedIngredientInRecipe) {
 	<div id="recipe-ingredients" class="flex flex-col items-stretch gap-4">
 		<div>
-			<ul class="flex flex-col gap-2 p-4">
-				for i, ingredient := range *ingredients {
-					<li x-data="{editing: false}" class="group flex justify-between" x-on:dblclick="editing=true" id={ fmt.Sprintf("li-%d", i) }>
-						<div x-show="!editing">
-							<span class="text-lg"><span class="font-semibold">{ ingredient.Name }</span> - { view_util.FloatToString[float32](ingredient.Amount) } { ingredient.MeasuringUnit }</span>
-						</div>
-						<div class="flex justify-stretch" x-show="editing" x-on:click.outside="editing = false">
-							<form
-								class="flex justify-stretch"
-								hx-put={ fmt.Sprintf("/recipes/%s/ingredients/%s", recipeID.Hex(), ingredient.IngredientID.Hex()) }
-								hx-target="#recipe-ingredients"
-								hx-swap="outerHTML"
-							>
-								<input type="number" name="amount" id="amount" value={ view_util.FloatToString[float32](ingredient.Amount) }/>
-							</form>
-						</div>
-						<div x-show="!editing" class="group-hover:block hidden">
-							<button x-on:click="editing=true" x-show="!editing">Edit</button>
-							<button hx-delete={ path.Join("/recipes/", recipeID.Hex(), "/ingredients", ingredient.IngredientID.Hex()) } hx-target={ fmt.Sprintf("#li-%d", i) } hx-confirm="Are you sure about that?">Delete</button>
-						</div>
-					</li>
-				}
-			</ul>
+			if ingredients != nil && len(*ingredients) > 0 {
+				<ul class="flex flex-col gap-2 p-4">
+					for i, ingredient := range *ingredients {
+						<li x-data="{editing: false}" class="group flex justify-between" x-on:dblclick="editing=true" id={ fmt.Sprintf("li-%d", i) }>
+							<div x-show="!editing">
+								<span class="text-lg"><span class="font-semibold">{ ingredient.Name }</span> - { view_util.FloatToString[float32](ingredient.Amount) } { ingredient.MeasuringUnit }</span>
+							</div>
+							<div class="flex justify-stretch" x-show="editing" x-on:click.outside="editing = false">
+								<form
+									class="flex justify-stretch"
+									hx-put={ fmt.Sprintf("/recipes/%s/ingredients/%s", recipeID, ingredient.IngredientID) }
+									hx-target="#recipe-ingredients"
+									hx-swap="outerHTML"
+								>
+									<input type="number" name="amount" id="amount" value={ view_util.FloatToString[float32](ingredient.Amount) }/>
+								</form>
+							</div>
+							<div x-show="!editing" class="group-hover:block hidden">
+								<button x-on:click="editing=true" x-show="!editing">Edit</button>
+								<button hx-delete={ path.Join("/recipes/", recipeID, "/ingredients", ingredient.IngredientID) } hx-target={ fmt.Sprintf("#li-%d", i) } hx-confirm="Are you sure about that?">Delete</button>
+							</div>
+						</li>
+					}
+				</ul>
+			} else {
+				<div id="ingredients-empty">
+					<p>This recipe doesn't have any ingredients yet</p>
+				</div>
+			}
 		</div>
-		if renderAddNewButton {
-			<button class="btn btn-gray" hx-get={ string(templ.SafeURL(path.Join("/recipes", recipeID.Hex(), "/add-ingredient"))) } hx-swap="outerHTML" hx-trigger="click">Add new ingredient</button>
-		}
+		<button class="btn btn-gray" hx-get={ string(templ.SafeURL(path.Join("/recipes", recipeID, "/add-ingredient"))) } hx-target="#recipe-ingredients" hx-swap="innerHTML" hx-trigger="click">Add new ingredient</button>
 	</div>
 }

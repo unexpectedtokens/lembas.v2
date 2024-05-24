@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	handler_util "github.com/unexpectedtoken/recipes/handler/common"
@@ -13,20 +14,11 @@ import (
 )
 
 func (h *RecipeHandler) HandleUpdateIngredient(w http.ResponseWriter, r *http.Request) {
-	recipeID, err := handler_util.ObjectIDFromR(r, "id")
+	recipeID := chi.URLParam(r, "id")
 
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
+	ingredientID := chi.URLParam(r, "ingID")
 
-	ingredientID, err := handler_util.ObjectIDFromR(r, "ingID")
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	err = r.ParseForm()
+	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
@@ -54,25 +46,16 @@ func (h *RecipeHandler) HandleUpdateIngredient(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	http.Redirect(w, r, path.Join("/recipes", recipeID.Hex(), "ingredients"), http.StatusSeeOther)
+	http.Redirect(w, r, path.Join("/recipes", recipeID, "ingredients"), http.StatusSeeOther)
 	fmt.Println(recipeID, ingredientID, amount)
 }
 
 func (h *RecipeHandler) HandleRemoveIngredientFromRecipe(w http.ResponseWriter, r *http.Request) {
-	recipeID, err := handler_util.ObjectIDFromR(r, "id")
+	recipeID := chi.URLParam(r, "id")
 
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
+	ingredientID := chi.URLParam(r, "ingID")
 
-	ingredientID, err := handler_util.ObjectIDFromR(r, "ingID")
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	err = h.recipeService.RemoveIngredientFromRecipe(r.Context(), recipeID, ingredientID)
+	err := h.recipeService.RemoveIngredientFromRecipe(r.Context(), recipeID, ingredientID)
 
 	if err != nil {
 		handler_util.LogErrorWithMessage(r, "error updating recipe", err)
@@ -80,33 +63,28 @@ func (h *RecipeHandler) HandleRemoveIngredientFromRecipe(w http.ResponseWriter, 
 		return
 	}
 
-	http.Redirect(w, r, path.Join("/recipes", recipeID.Hex(), "ingredients"), http.StatusSeeOther)
+	http.Redirect(w, r, path.Join("/recipes", recipeID, "ingredients"), http.StatusSeeOther)
 }
 
-func (h *RecipeHandler) HandleAddToGroceryList(w http.ResponseWriter, r *http.Request) {
-	recipeID, err := handler_util.ObjectIDFromR(r, "id")
+func (h *RecipeHandler) HandleShowRecipeList(w http.ResponseWriter, r *http.Request) {
+	logger := handler_util.GetLoggerFromReqContext(r)
 
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
+	concattedIds := r.URL.Query().Get("ids")
+	var recipes []types.Recipe
+	var err error
+	if len(concattedIds) > 0 {
+		ids := strings.Split(concattedIds, ",")
+
+		recipes, err = h.recipeService.GetRecipesInIDList(r.Context(), &ids)
+	} else {
+		recipes, err = h.recipeService.GetList(r.Context())
 	}
 
-	statusString := chi.URLParam(r, "status")
-
-	status, err := strconv.ParseBool(statusString)
-
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
-		return
-	}
-
-	err = h.recipeService.UpdateGroceryListStatus(r.Context(), recipeID, status)
-
-	if err != nil {
-		handler_util.LogErrorWithMessage(r, "error updating grocery list status", err)
+		logger.Error(err.Error())
 		w.WriteHeader(500)
 		return
 	}
 
-	recipe_view.InGroceryListButton(status, recipeID).Render(r.Context(), w)
+	recipe_view.RecipeList(recipes).Render(r.Context(), w)
 }

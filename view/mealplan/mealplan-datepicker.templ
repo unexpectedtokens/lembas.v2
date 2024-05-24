@@ -1,0 +1,23 @@
+package mealplan_view
+
+import "time"
+
+templ MealplanDatePickerPage() {
+	<div x-data="{fromDate: '', toDate: ''}" class="flex flex-col items-stretch">
+		<label for="fromDate">From:</label>
+		<input id="fromDate" type="date" x-model="fromDate" placeholder="From" min={ time.Now().Format("2006-01-02") }/>
+		<label for="toDate" class="mt-5">To:</label>
+		<input id="toDate" type="date" x-model="toDate" placeholder="To"/>
+		<a :href="fromDate && toDate ? '/mealplan/shopping-list/' + formatDate(fromDate) + '...' + formatDate(toDate) : ''" class="btn btn-green mt-5">Generate shopping list</a>
+	</div>
+	<script>
+		function formatDate(date) {
+			if (!date) return ''
+			const d = new Date(date);
+			const year = d.getFullYear();
+			const month = String(d.getMonth() + 1).padStart(2, '0');
+			const day = String(d.getDate()).padStart(2, '0');
+			return `${day}-${month}-${year}`;
+		}
+	</script>
+}

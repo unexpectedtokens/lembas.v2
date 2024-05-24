@@ -1,0 +1,12 @@
+package auth_view
+
+templ LoginPage () {
+	<h2 class="text-2xl font-bold mb-5">Log in</h2>
+	<form method="post" action="/auth">
+		<label for="username">Username</label>
+		<input type="text" id="username" name="username"/>
+		<label for="password">Password</label>
+		<input type="password" id="password" name="password"/>
+		<input type="submit" value="Log in"/>
+	</form>`
+}
