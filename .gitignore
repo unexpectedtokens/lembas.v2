@@ -1,5 +1,4 @@
 .env
 assets/public/css/output.css
-view/**/*_templ.go
 
 tmp
